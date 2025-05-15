@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_GITHUB_CLIENT_ID=${VITE_GITHUB_CLIENT_ID}
+      - VITE_GITHUB_CLIENT_SECRET=${VITE_GITHUB_CLIENT_SECRET}
+      - VITE_GITHUB_REDIRECT_URI=${VITE_GITHUB_REDIRECT_URI:-http://localhost:3000/auth/callback}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
+      - VITE_GITHUB_RATE_LIMIT=${VITE_GITHUB_RATE_LIMIT:-5000}
+      - VITE_APP_NAME=${VITE_APP_NAME:-GitHub Dashboard}
+    restart: unless-stopped
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3001
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 
